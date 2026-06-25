@@ -314,7 +314,19 @@ def create_config(task_id, model_path, model_name, model_type, expected_repo_nam
             _dropout = 0.10
         config["caption_dropout_rate"] = _dropout
         print(f"caption_dropout_rate={_dropout} (dataset_size={dataset_size})", flush=True)
-        
+
+        # Min-SNR weighting: scales the denoising loss by min(SNR, gamma)/SNR,
+        # down-weighting high-noise timesteps whose gradients are large but
+        # carry little visual quality signal. gamma=5 is the published default.
+        # Reference: Hang et al. 2023 "Efficient Diffusion Training via Min-SNR"
+        config["min_snr_gamma"] = 5
+        # Noise offset: shifts the noise floor of the forward diffusion process
+        # so the model learns to generate images at the extremes of brightness,
+        # which the standard schedule cannot reach without this offset.
+        # Reference: sd-scripts / Dreamlike Art 2023 — widely adopted.
+        config["noise_offset"] = 0.0357
+        print("min_snr_gamma=5, noise_offset=0.0357 applied (Hang et al. 2023)", flush=True)
+
         config_path = os.path.join(train_cst.IMAGE_CONTAINER_CONFIG_SAVE_PATH, f"{task_id}.toml")
         save_config_toml(config, config_path)
         print(f"config is {config}", flush=True)
