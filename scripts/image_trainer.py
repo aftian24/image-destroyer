@@ -304,7 +304,16 @@ def create_config(task_id, model_path, model_name, model_type, expected_repo_nam
         if dataset_size > 0 and not size_config_loaded:
              print(f"Warning: No size-specific configuration (xs/s/m/l/xl) found for model '{model_name}' with {dataset_size} images. Using model defaults.", flush=True)
         
-        config["caption_dropout_rate"] = 0.1
+        # Adaptive caption dropout: small datasets need more dropout to prevent
+        # memorization; large datasets can afford a lower rate for denser signal.
+        if dataset_size <= 20:
+            _dropout = 0.15
+        elif dataset_size >= 50:
+            _dropout = 0.05
+        else:
+            _dropout = 0.10
+        config["caption_dropout_rate"] = _dropout
+        print(f"caption_dropout_rate={_dropout} (dataset_size={dataset_size})", flush=True)
         
         config_path = os.path.join(train_cst.IMAGE_CONTAINER_CONFIG_SAVE_PATH, f"{task_id}.toml")
         save_config_toml(config, config_path)
